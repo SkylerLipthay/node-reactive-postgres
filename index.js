@@ -91,7 +91,10 @@ class ReactiveQueryHandle extends Readable {
       await this.client.lock.release();
     }
 
-    this._sources = [...this._extractSources(queryExplanation)].sort();
+    this._sources = this.options.sources ?
+      this.options.sources.map(quoteSource) :
+      [...this._extractSources(queryExplanation)];
+    this._sources.sort()
 
     // We are just starting, how could it be true?
     assert(!this._refreshInProgress);
@@ -936,6 +939,26 @@ function qualifySource(schema, name) {
 
 function escapeSource(source) {
   return source.replace(/[^a-z0-9_]/gi, '_');
+}
+
+function quoteSource(source) {
+  let inQuote = false;
+  let chunk = '';
+  const chunks = [];
+  for (const c of source) {
+    switch (c) {
+      case '"':
+        inQuote = !inQuote;
+      case '.':
+        if (chunk) chunks.push(chunk);
+        chunk = '';
+        break;
+      default:
+        chunk += c;
+    }
+  }
+  if (chunk) chunks.push(chunk);
+  return chunks.map((chunk) => `"${chunk}"`).join('.');
 }
 
 module.exports = {

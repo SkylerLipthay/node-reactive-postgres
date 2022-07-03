@@ -274,6 +274,9 @@ per every `refreshThrottleWait` milliseconds
   * `full`: for every query results change, provide full changed rows,
     both columns which have changed and those which have not
 * `types`, default `null`: [custom type parsers](https://node-postgres.com/features/queries#types)
+* `sources`, default `null`: either:
+  * `null`, in which case all referenced tables are automatically extracted from the `query`
+  * an array of strings, each specifying a table that should be listened to for changes
 
 ##### `'start'` event `()`
 
