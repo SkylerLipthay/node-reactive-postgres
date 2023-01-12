@@ -774,9 +774,9 @@ class Manager extends EventEmitter {
         try {
           await this.client.query(`
             START TRANSACTION;
-            CREATE TRIGGER "${this.managerId}_source_changed_${escapeSource(source)}_insert" AFTER INSERT ON ${source} REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
-            CREATE TRIGGER "${this.managerId}_source_changed_${escapeSource(source)}_update" AFTER UPDATE ON ${source} REFERENCING NEW TABLE AS new_rows OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
-            CREATE TRIGGER "${this.managerId}_source_changed_${escapeSource(source)}_delete" AFTER DELETE ON ${source} REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
+            CREATE TRIGGER "${this.managerId}_source_changed_${internedString(source)}_insert" AFTER INSERT ON ${source} REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
+            CREATE TRIGGER "${this.managerId}_source_changed_${internedString(source)}_update" AFTER UPDATE ON ${source} REFERENCING NEW TABLE AS new_rows OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
+            CREATE TRIGGER "${this.managerId}_source_changed_${internedString(source)}_delete" AFTER DELETE ON ${source} REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
             COMMIT;
           `);
         }
@@ -790,7 +790,7 @@ class Manager extends EventEmitter {
 
         try {
           await this.client.query(`
-            CREATE TRIGGER "${this.managerId}_source_changed_${escapeSource(source)}_truncate" AFTER TRUNCATE ON ${source} FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
+            CREATE TRIGGER "${this.managerId}_source_changed_${internedString(source)}_truncate" AFTER TRUNCATE ON ${source} FOR EACH STATEMENT EXECUTE FUNCTION pg_temp.notify_source_changed('${this.managerId}');
           `);
         }
         // Ignoring errors. The source might not support TRUNCATE trigger.
@@ -827,10 +827,10 @@ class Manager extends EventEmitter {
       try {
         await this.client.query(`
           UNLISTEN "${this.managerId}_source_changed";
-          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${escapeSource(source)}_insert" ON ${source};
-          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${escapeSource(source)}_update" ON ${source};
-          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${escapeSource(source)}_delete" ON ${source};
-          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${escapeSource(source)}_truncate" ON ${source};
+          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${internedString(source)}_insert" ON ${source};
+          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${internedString(source)}_update" ON ${source};
+          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${internedString(source)}_delete" ON ${source};
+          DROP TRIGGER IF EXISTS "${this.managerId}_source_changed_${internedString(source)}_truncate" ON ${source};
         `);
       }
       catch (error) {
@@ -937,8 +937,11 @@ function qualifySource(schema, name) {
   return `"${schema}"."${name}"`;
 }
 
-function escapeSource(source) {
-  return source.replace(/[^a-z0-9_]/gi, '_');
+const internedStrings = {};
+let internCount = 0;
+
+function internedString(value) {
+  return (internedStrings[value] ??= internCount++);
 }
 
 function quoteSource(source) {
